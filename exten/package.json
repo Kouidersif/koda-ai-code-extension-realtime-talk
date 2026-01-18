@@ -1,0 +1,184 @@
+{
+  "name": "ai-voice-narrator",
+  "displayName": "AI Voice Narrator",
+  "description": "A voice AI companion that explains code changes and keeps you in flow",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-narrator.toggle",
+        "title": "Toggle AI Voice Narrator"
+      },
+      {
+        "command": "ai-narrator.start",
+        "title": "Start AI Voice Narrator"
+      },
+      {
+        "command": "ai-narrator.stop",
+        "title": "Stop AI Voice Narrator"
+      },
+      {
+        "command": "ai-narrator.mute",
+        "title": "Mute/Unmute AI Voice Narrator"
+      },
+      {
+        "command": "ai-narrator.sendContext",
+        "title": "Gemini Live: Send Current File Context"
+      },
+      {
+        "command": "ai-narrator.sendSelection",
+        "title": "Gemini Live: Send Selection to AI"
+      },
+      {
+        "command": "ai-narrator.sendWorkspaceTree",
+        "title": "Gemini Live: Send Workspace Tree to AI"
+      },
+      {
+        "command": "ai-narrator.toggleContext",
+        "title": "Gemini Live: Toggle Context Sharing"
+      }
+    ],
+    "configuration": {
+      "title": "AI Voice Narrator",
+      "properties": {
+        "aiNarrator.backendUrl": {
+          "type": "string",
+          "default": "ws://localhost:8001/ws",
+          "description": "WebSocket URL for the Gemini Live backend"
+        },
+        "aiNarrator.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start narrator when VS Code opens"
+        },
+        "aiNarrator.notifyOnChanges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send notifications for major code changes"
+        },
+        "aiNarrator.debounceDelay": {
+          "type": "number",
+          "default": 500,
+          "description": "Delay (ms) before sending code changes to AI"
+        },
+        "aiNarrator.context.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable sharing editor context with AI"
+        },
+        "aiNarrator.context.selectionOnly": {
+          "type": "boolean",
+          "default": true,
+          "description": "Only send selected text (not snippets or full files). Recommended for privacy."
+        },
+        "aiNarrator.context.sendOnSelectionChange": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically send context when selection changes. If false, use command to send manually."
+        },
+        "aiNarrator.context.maxSelectionChars": {
+          "type": "number",
+          "default": 8000,
+          "description": "Maximum characters to include in selection context"
+        },
+        "aiNarrator.context.includeWorkspaceTree": {
+          "type": "boolean",
+          "default": true,
+          "description": "Send workspace directory tree on session start"
+        },
+        "aiNarrator.context.workspaceTreeDepth": {
+          "type": "number",
+          "default": 4,
+          "description": "Maximum depth for workspace tree (1-10)"
+        },
+        "aiNarrator.context.workspaceTreeMaxChars": {
+          "type": "number",
+          "default": 10000,
+          "description": "Maximum characters for workspace tree"
+        },
+        "aiNarrator.context.workspaceTreeExcludeGlobs": {
+          "type": "array",
+          "default": ["node_modules", ".git", "dist", "build", "out", ".next", ".venv", "__pycache__", ".cache", "coverage", ".nyc_output", ".parcel-cache", ".turbo"],
+          "description": "Folder names to exclude from workspace tree"
+        },
+        "aiNarrator.context.includeFullFile": {
+          "type": "boolean",
+          "default": false,
+          "description": "(Legacy) Include full file content in context"
+        },
+        "aiNarrator.context.includeGitDiff": {
+          "type": "boolean",
+          "default": false,
+          "description": "(Legacy) Include git diff of current file"
+        },
+        "aiNarrator.context.snippetLines": {
+          "type": "number",
+          "default": 40,
+          "description": "(Legacy) Number of lines around cursor"
+        },
+        "aiNarrator.context.maxChars": {
+          "type": "number",
+          "default": 8000,
+          "description": "(Legacy) Maximum characters in context payload"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "ai-narrator.toggle",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v"
+      },
+      {
+        "command": "ai-narrator.mute",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "ai-narrator.sendContext",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c",
+        "when": "editorTextFocus"
+      },
+      {
+        "command": "ai-narrator.sendSelection",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s",
+        "when": "editorTextFocus && editorHasSelection"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.13.0",
+    "@typescript-eslint/parser": "^6.13.0",
+    "eslint": "^8.54.0",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "@types/node": "^20.0.0",
+    "node-record-lpcm16": "^1.0.1",
+    "speaker": "^0.5.5",
+    "ws": "^8.16.0"
+  }
+}

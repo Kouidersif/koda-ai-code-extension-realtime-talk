@@ -1,0 +1,206 @@
+# AI Voice Narrator - VS Code Extension
+
+A voice AI companion that explains code changes in real-time using Gemini Live, keeping you in flow without reading walls of text.
+
+## Features
+
+- **Live Voice Narration**: Hear what changed in your code as you work
+- **Smart Context Awareness**: Monitors file changes, saves, and git diffs
+- **Two-Way Communication**: Voice input and output via Gemini Live
+- **Minimal Friction**: Toggle on/off with keyboard shortcuts
+- **Real-time Audio**: Low-latency audio streaming via WebSocket
+
+## Setup
+
+### 1. Project Structure
+
+Create this folder structure:
+
+```
+ai-voice-narrator/
+├── src/
+│   ├── extension.ts
+│   ├── geminiLiveClient.ts
+│   ├── audioRecorder.ts
+│   └── editorMonitor.ts
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Configure Backend URL
+
+Open VS Code settings (Cmd/Ctrl + ,) and search for "AI Narrator". Set:
+
+- **Backend URL**: `ws://localhost:8001/ws` (or your backend URL)
+
+### 4. Run the Extension
+
+1. Open the project in VS Code
+2. Press `F5` to launch Extension Development Host
+3. In the new window, press `Ctrl+Shift+V` (or `Cmd+Shift+V` on Mac) to start
+
+## Usage
+
+### Commands
+
+- **Toggle AI Narrator**: `Ctrl+Shift+V` / `Cmd+Shift+V`
+- **Mute/Unmute**: `Ctrl+Shift+M` / `Cmd+Shift+M`
+- Or use Command Palette (`Ctrl+Shift+P`):
+  - `Start AI Voice Narrator`
+  - `Stop AI Voice Narrator`
+  - `Toggle AI Voice Narrator`
+
+### Status Bar
+
+The status bar (bottom right) shows:
+- `$(mic-off) AI Narrator` - Inactive
+- `$(mic) AI Narrator Active` - Listening and narrating
+- `$(mute) AI Narrator (Muted)` - Muted
+
+### How It Works
+
+1. **Start the narrator** - it connects to your Gemini Live backend
+2. **Code as normal** - make changes, save files
+3. **Listen** - the AI narrates what changed:
+   - "I detected changes in auth.ts - you added JWT validation"
+   - "Three files modified - login flow updated with error handling"
+4. **Speak** - ask questions or give commands via voice
+5. **Stay in flow** - no context switching
+
+## Configuration
+
+### Settings
+
+- `aiNarrator.backendUrl`: WebSocket URL for Gemini Live backend
+- `aiNarrator.autoStart`: Auto-start when VS Code opens
+- `aiNarrator.notifyOnChanges`: Show notifications for major changes
+- `aiNarrator.debounceDelay`: Delay before sending changes (default: 500ms)
+
+### Context Sharing Settings
+
+Control how much of your code is shared with the AI:
+
+- `aiNarrator.context.enabled`: Enable/disable context sharing (default: true)
+- `aiNarrator.context.includeFullFile`: Send entire file content (default: false, privacy consideration)
+- `aiNarrator.context.includeGitDiff`: Include git diff of current file (default: false)
+- `aiNarrator.context.snippetLines`: Lines of code around cursor to include (default: 40)
+- `aiNarrator.context.maxChars`: Maximum characters in context payload (default: 20,000)
+- `aiNarrator.context.debounceMs`: Debounce delay for context updates (default: 500ms)
+
+### Context Commands
+
+- **Send Context Now**: `Gemini Live: Send Current File Context Now` - Manually send current editor context
+- **Toggle Context**: `Gemini Live: Toggle Context Sharing` - Enable/disable context sharing
+- Status bar shows context sharing state: `$(eye) Context: On` or `$(eye-closed) Context: Off`
+
+## What Gets Sent to Gemini
+
+The extension sends:
+- File changes (git diff when available)
+- File saves with context
+- Active editor switches
+- Selected text
+- Language and file metadata
+
+### Editor Context (New!)
+
+When context sharing is enabled, the extension automatically sends:
+- **File info**: Name, language, line count
+- **Cursor position**: Current line and column
+- **Selection**: Any selected text (for "explain this" queries)
+- **Code snippet**: ~40 lines around your cursor (configurable)
+- **Git diff** (optional): Changes in the current file
+
+This allows you to ask questions like:
+- "What does this function do?"
+- "Explain this code"
+- "Is there a bug here?"
+- "How can I improve this?"
+
+The AI will respond based on the actual code you're looking at!
+
+## Privacy & Security
+
+- Audio is streamed directly to your backend (not stored)
+- Code context is sent only while narrator is active
+- No data is stored or transmitted when inactive
+- **Secret redaction**: Common patterns (API keys, passwords, private keys) are automatically redacted
+- **Size limits**: Context is truncated to prevent large payloads (default 20KB max)
+- **Opt-in for sensitive data**: Full file and git diff require explicit enabling
+- Context sharing can be toggled on/off at any time via status bar or command
+
+## Development
+
+### Building
+
+```bash
+npm run compile
+```
+
+### Watching for changes
+
+```bash
+npm run watch
+```
+
+### Testing
+
+```bash
+npm test
+```
+
+## Troubleshooting
+
+### No audio playback
+- Check browser permissions for microphone/speakers
+- Ensure backend is running and WebSocket is connected
+- Check VS Code Developer Console for errors
+
+### Backend connection fails
+- Verify backend URL in settings
+- Ensure backend server is running on port 8001
+- Check firewall settings
+
+### Audio quality issues
+- The extension uses 16kHz, 16-bit PCM audio
+- Ensure your microphone supports these settings
+- Check system audio settings
+
+## Architecture
+
+```
+VS Code Extension
+├── Extension Host (Node.js)
+│   ├── Editor Monitor → Watches file changes
+│   └── WebSocket Client → Connects to backend
+└── Webview/Browser Context
+    ├── Audio Recorder → Captures microphone
+    └── Audio Player → Plays Gemini responses
+
+Backend (Python/FastAPI)
+└── Gemini Live → AI narration engine
+```
+
+## Next Steps
+
+Potential enhancements:
+- Visual indicators for AI speaking
+- Transcription display panel
+- Context filtering (ignore certain files)
+- Custom prompts/personality
+- Integration with other AI tools
+
+## License
+
+MIT
+
+## Support
+
+For issues or questions, please open an issue on GitHub.
