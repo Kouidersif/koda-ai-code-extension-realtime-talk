@@ -4,10 +4,31 @@ import os
 from google import genai
 from google.genai import types
 from google.oauth2 import service_account
-GOOGLE_VERTEX_LOCATION = "us-central1"
-GOOGLE_VERTEX_PROJECT = "social-media-moderation-434816"
-GEMINI_MODEL: str = "gemini-live-2.5-flash-preview-native-audio-09-2025"
+import json
+
+
+# Configuration
+GOOGLE_VERTEX_PROJECT = os.getenv("PROJECT_ID", "social-media-moderation-434816")
+GOOGLE_VERTEX_LOCATION = os.getenv("LOCATION", "us-central1")
+GEMINI_MODEL = os.getenv("MODEL", "gemini-live-2.5-flash-preview-native-audio-09-2025")
 # GEMINI_MODEL: str = "gemini-live-2.5-flash-native-audio"
+
+
+SCOPES=['https://www.googleapis.com/auth/cloud-platform']
+
+def get_google_creds():
+    creds_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if creds_json:
+        info = json.loads(creds_json)
+        return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+
+    # optional local fallback: path to JSON file
+    path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")  # e.g. /path/to/key.json
+    if path:
+        return service_account.Credentials.from_service_account_file(path, scopes=SCOPES)
+
+    raise RuntimeError("Missing creds: set GOOGLE_APPLICATION_CREDENTIALS_JSON (preferred) or GOOGLE_APPLICATION_CREDENTIALS (file path).")
+
 
 class GeminiLive:
     """
@@ -25,19 +46,11 @@ class GeminiLive:
         self.project_id = GOOGLE_VERTEX_PROJECT
         self.location = GOOGLE_VERTEX_LOCATION
         self.model = GEMINI_MODEL
-        credentials_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "gemini-api.json")
-        
-        # Load credentials if provided
-        creds = None
-        if credentials_path:
-            creds = service_account.Credentials.from_service_account_file(
-                credentials_path,
-                scopes=['https://www.googleapis.com/auth/cloud-platform']
-            )
+        creds = get_google_creds()
         
         self.client = genai.Client(
-            vertexai=True, 
-            project=self.project_id, 
+            vertexai=True,
+            project=self.project_id,
             location=self.location,
             credentials=creds
         )

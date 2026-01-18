@@ -22,10 +22,7 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
-PROJECT_ID = os.getenv("PROJECT_ID", "your-gcp-project-id")
-LOCATION = os.getenv("LOCATION", "us-central1")
-MODEL = os.getenv("MODEL", "gemini-live-2.5-flash-native-audio")
+
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Initialize OpenAI client
@@ -181,117 +178,117 @@ async def websocket_endpoint(websocket: WebSocket):
         input_sample_rate=16000 
     )
 
-    async def process_audio_with_openai(audio_data_copy, user_text_from_gemini=None, gemini_response=None):
-        """Process accumulated audio with OpenAI Whisper for transcription/translation."""
-        nonlocal openai_processing
+    # async def process_audio_with_openai(audio_data_copy, user_text_from_gemini=None, gemini_response=None):
+    #     """Process accumulated audio with OpenAI Whisper for transcription/translation."""
+    #     nonlocal openai_processing
         
-        if not openai_client:
-            return
+    #     if not openai_client:
+    #         return
         
-        try:
-            # Gemini already validated this is real speech by responding!
-            # Just calculate energy for logging purposes
-            import numpy as np
-            audio_array = np.frombuffer(audio_data_copy, dtype=np.int16)
-            audio_energy = np.sqrt(np.mean(audio_array.astype(np.float32)**2))
+    #     try:
+    #         # Gemini already validated this is real speech by responding!
+    #         # Just calculate energy for logging purposes
+    #         import numpy as np
+    #         audio_array = np.frombuffer(audio_data_copy, dtype=np.int16)
+    #         audio_energy = np.sqrt(np.mean(audio_array.astype(np.float32)**2))
             
-            # Create WAV file in memory
-            wav_io = io.BytesIO()
-            with wave.open(wav_io, 'wb') as wav_file:
-                wav_file.setnchannels(1)  # Mono
-                wav_file.setsampwidth(2)  # 16-bit
-                wav_file.setframerate(16000)  # 16kHz
-                wav_file.writeframes(audio_data_copy)
+    #         # Create WAV file in memory
+    #         wav_io = io.BytesIO()
+    #         with wave.open(wav_io, 'wb') as wav_file:
+    #             wav_file.setnchannels(1)  # Mono
+    #             wav_file.setsampwidth(2)  # 16-bit
+    #             wav_file.setframerate(16000)  # 16kHz
+    #             wav_file.writeframes(audio_data_copy)
             
-            wav_io.seek(0)
-            wav_io.name = "audio.wav"
+    #         wav_io.seek(0)
+    #         wav_io.name = "audio.wav"
             
-            # Use Whisper API for transcription
-            transcription = await openai_client.audio.transcriptions.create(
-                model="gpt-4o-transcribe",
-                file=wav_io,
-                # response_format="verbose_json"
-            )
+    #         # Use Whisper API for transcription
+    #         transcription = await openai_client.audio.transcriptions.create(
+    #             model="gpt-4o-transcribe",
+    #             file=wav_io,
+    #             # response_format="verbose_json"
+    #         )
             
-            no_speech_prob = getattr(transcription, 'no_speech_prob', 0)
-            detected_lang = transcription.language if hasattr(transcription, 'language') else 'unknown'
-            transcription_text = transcription.text if transcription.text else ""
+    #         no_speech_prob = getattr(transcription, 'no_speech_prob', 0)
+    #         detected_lang = transcription.language if hasattr(transcription, 'language') else 'unknown'
+    #         transcription_text = transcription.text if transcription.text else ""
             
-            # Only skip if transcription is completely empty (Whisper failed)
-            if not transcription_text or len(transcription_text.strip()) < 2:
-                logger.warning(f"Whisper returned empty transcription despite Gemini validation")
-                return
+    #         # Only skip if transcription is completely empty (Whisper failed)
+    #         if not transcription_text or len(transcription_text.strip()) < 2:
+    #             logger.warning(f"Whisper returned empty transcription despite Gemini validation")
+    #             return
             
-            # Log comparison with Gemini's transcription
-            if user_text_from_gemini:
-                logger.info(f"Gemini heard: '{user_text_from_gemini}'")
-            logger.info(f"Whisper transcribed: '{transcription_text}' (energy: {audio_energy:.2f}, no_speech_prob: {no_speech_prob:.2f})")
+    #         # Log comparison with Gemini's transcription
+    #         if user_text_from_gemini:
+    #             logger.info(f"Gemini heard: '{user_text_from_gemini}'")
+    #         logger.info(f"Whisper transcribed: '{transcription_text}' (energy: {audio_energy:.2f}, no_speech_prob: {no_speech_prob:.2f})")
             
-            # If not English or Arabic, translate to Arabic using GPT
-            translation_text = transcription_text
-            if detected_lang not in ['en', 'ar', 'english', 'arabic'] and transcription_text:
-                try:
-                    # Use Chat Completions to translate to Arabic
-                    chat_response = await openai_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "You are a translator. Translate the following text to Arabic. Return ONLY the Arabic translation, nothing else."
-                            },
-                            {
-                                "role": "user",
-                                "content": transcription_text
-                            }
-                        ],
-                        temperature=0.3
-                    )
-                    translation_text = chat_response.choices[0].message.content.strip()
-                except Exception as e:
-                    logger.warning(f"Translation to Arabic failed: {e}")
-                    # If translation fails, use transcription
-                    translation_text = transcription_text
-            elif detected_lang in ['en', 'english']:
-                # If English, also translate to Arabic
-                try:
-                    chat_response = await openai_client.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "You are a translator. Translate the following English text to Arabic. Return ONLY the Arabic translation, nothing else."
-                            },
-                            {
-                                "role": "user",
-                                "content": transcription_text
-                            }
-                        ],
-                        temperature=0.3
-                    )
-                    translation_text = chat_response.choices[0].message.content.strip()
-                except Exception as e:
-                    logger.warning(f"Translation to Arabic failed: {e}")
-                    translation_text = transcription_text
+    #         # If not English or Arabic, translate to Arabic using GPT
+    #         translation_text = transcription_text
+    #         if detected_lang not in ['en', 'ar', 'english', 'arabic'] and transcription_text:
+    #             try:
+    #                 # Use Chat Completions to translate to Arabic
+    #                 chat_response = await openai_client.chat.completions.create(
+    #                     model="gpt-4o-mini",
+    #                     messages=[
+    #                         {
+    #                             "role": "system",
+    #                             "content": "You are a translator. Translate the following text to Arabic. Return ONLY the Arabic translation, nothing else."
+    #                         },
+    #                         {
+    #                             "role": "user",
+    #                             "content": transcription_text
+    #                         }
+    #                     ],
+    #                     temperature=0.3
+    #                 )
+    #                 translation_text = chat_response.choices[0].message.content.strip()
+    #             except Exception as e:
+    #                 logger.warning(f"Translation to Arabic failed: {e}")
+    #                 # If translation fails, use transcription
+    #                 translation_text = transcription_text
+    #         elif detected_lang in ['en', 'english']:
+    #             # If English, also translate to Arabic
+    #             try:
+    #                 chat_response = await openai_client.chat.completions.create(
+    #                     model="gpt-4o-mini",
+    #                     messages=[
+    #                         {
+    #                             "role": "system",
+    #                             "content": "You are a translator. Translate the following English text to Arabic. Return ONLY the Arabic translation, nothing else."
+    #                         },
+    #                         {
+    #                             "role": "user",
+    #                             "content": transcription_text
+    #                         }
+    #                     ],
+    #                     temperature=0.3
+    #                 )
+    #                 translation_text = chat_response.choices[0].message.content.strip()
+    #             except Exception as e:
+    #                 logger.warning(f"Translation to Arabic failed: {e}")
+    #                 translation_text = transcription_text
             
-            result = {
-                "transcription": transcription_text,
-                "translation": translation_text,
-                "target_lang": detected_lang,
-                "gemini_response": gemini_response  # Include Gemini's response
-            }
+    #         result = {
+    #             "transcription": transcription_text,
+    #             "translation": translation_text,
+    #             "target_lang": detected_lang,
+    #             "gemini_response": gemini_response  # Include Gemini's response
+    #         }
             
-            # Send to frontend
-            await websocket.send_json({
-                "type": "openai_transcription",
-                "data": result
-            })
+    #         # Send to frontend
+    #         await websocket.send_json({
+    #             "type": "openai_transcription",
+    #             "data": result
+    #         })
             
-            logger.info(f"OpenAI transcription: {result}")
+    #         logger.info(f"OpenAI transcription: {result}")
             
-        except Exception as e:
-            logger.error(f"Error processing audio with OpenAI: {e}")
-        finally:
-            openai_processing = False
+    #     except Exception as e:
+    #         logger.error(f"Error processing audio with OpenAI: {e}")
+    #     finally:
+    #         openai_processing = False
     
     async def receive_from_client():
         nonlocal openai_processing, current_turn_audio, pending_context, pending_context_hash
