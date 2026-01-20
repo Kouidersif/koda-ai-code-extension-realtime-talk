@@ -107,9 +107,22 @@ export function activate(context: vscode.ExtensionContext) {
         );
     });
 
+    const toggleAutoSelectCommand = vscode.commands.registerCommand('ai-narrator.toggleAutoSelect', () => {
+        const config = vscode.workspace.getConfiguration('aiNarrator.context');
+        const currentValue = config.get<boolean>('sendOnSelectionChange', true);
+        const newValue = !currentValue;
+        config.update('sendOnSelectionChange', newValue, true);
+        vscode.window.showInformationMessage(
+            newValue 
+                ? '✓ Auto-send selection enabled - Select text to send automatically' 
+                : '✗ Auto-send disabled - Use CMD+Shift+S to send selection manually'
+        );
+    });
+
     context.subscriptions.push(
         toggleCommand, startCommand, stopCommand, muteCommand, 
-        statusCommand, sendContextCommand, sendSelectionCommand, sendTreeCommand, toggleContextCommand
+        statusCommand, sendContextCommand, sendSelectionCommand, sendTreeCommand, 
+        toggleContextCommand, toggleAutoSelectCommand
     );
 
     // Set up event handlers

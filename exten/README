@@ -88,6 +88,11 @@ The status bar (bottom right) shows:
 Control how much of your code is shared with the AI:
 
 - `aiNarrator.context.enabled`: Enable/disable context sharing (default: true)
+- `aiNarrator.context.selectionOnly`: Only send selected text, not full files (default: true, recommended for privacy)
+- `aiNarrator.context.sendOnSelectionChange`: Automatically send selections without CMD+Shift+S (default: true)
+- `aiNarrator.context.maxSelectionChars`: Max characters to send in selection (default: 8000)
+- `aiNarrator.context.includeWorkspaceTree`: Send workspace directory tree on session start (default: true)
+- `aiNarrator.context.workspaceTreeDepth`: How deep to scan workspace (default: 4)
 - `aiNarrator.context.includeFullFile`: Send entire file content (default: false, privacy consideration)
 - `aiNarrator.context.includeGitDiff`: Include git diff of current file (default: false)
 - `aiNarrator.context.snippetLines`: Lines of code around cursor to include (default: 40)
@@ -97,8 +102,29 @@ Control how much of your code is shared with the AI:
 ### Context Commands
 
 - **Send Context Now**: `Gemini Live: Send Current File Context Now` - Manually send current editor context
+- **Send Selection**: `Gemini Live: Send Selection to AI` (`CMD+Shift+S`) - Manually send selected text
+- **Send Workspace Tree**: `Gemini Live: Send Workspace Tree to AI` - Send project structure
 - **Toggle Context**: `Gemini Live: Toggle Context Sharing` - Enable/disable context sharing
+- **Toggle Auto-Send Selection**: `Gemini Live: Toggle Auto-Send Selection` - Enable/disable automatic sending when you select text
 - Status bar shows context sharing state: `$(eye) Context: On` or `$(eye-closed) Context: Off`
+
+### Auto-Send Selection (New!)
+
+By default, the AI automatically receives your selected text without needing to press CMD+Shift+S:
+
+1. **Start the narrator**
+2. **Select any text** in your editor
+3. **AI receives it automatically** (no hotkey needed!)
+
+To disable auto-send and require manual CMD+Shift+S:
+- Use command: `Gemini Live: Toggle Auto-Send Selection`
+- Or in settings: Set `aiNarrator.context.sendOnSelectionChange` to `false`
+
+**Features:**
+- ✅ Automatic with 300ms debounce (prevents spam while selecting)
+- ✅ Hash-based deduplication (doesn't resend unchanged selections)
+- ✅ 8000 character limit (configurable)
+- ✅ Respects privacy settings and context toggle
 
 ## What Gets Sent to Gemini
 

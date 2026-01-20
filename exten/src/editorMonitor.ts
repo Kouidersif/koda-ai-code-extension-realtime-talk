@@ -106,7 +106,7 @@ export class EditorMonitor {
         return {
             enabled: config.get<boolean>('enabled', true),
             selectionOnly: config.get<boolean>('selectionOnly', true),  // NEW: default true
-            sendOnSelectionChange: config.get<boolean>('sendOnSelectionChange', false),  // NEW: default false (privacy)
+            sendOnSelectionChange: config.get<boolean>('sendOnSelectionChange', true),  // Auto-send enabled by default
             maxSelectionChars: config.get<number>('maxSelectionChars', 8000),
             includeWorkspaceTree: config.get<boolean>('includeWorkspaceTree', true),
             workspaceTreeDepth: config.get<number>('workspaceTreeDepth', 4),

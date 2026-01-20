@@ -49,6 +49,10 @@
         "title": "Gemini Live: Toggle Context Sharing"
       },
       {
+        "command": "ai-narrator.toggleAutoSelect",
+        "title": "Gemini Live: Toggle Auto-Send Selection"
+      },
+      {
         "command": "ai-narrator.explainWithCopilot",
         "title": "Copilot: Explain Selection",
         "icon": "$(comment-discussion)"
@@ -132,8 +136,8 @@
         },
         "aiNarrator.context.sendOnSelectionChange": {
           "type": "boolean",
-          "default": false,
-          "description": "Automatically send context when selection changes. If false, use command to send manually."
+          "default": true,
+          "description": "Automatically send selected text to AI without requiring CMD+Shift+S. Disable to send manually only."
         },
         "aiNarrator.context.maxSelectionChars": {
           "type": "number",
