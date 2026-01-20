@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { GeminiLiveClient } from './geminiLiveClient';
 import { AudioRecorder } from './audioRecorder';
 import { EditorMonitor, EditorContextPayload, SelectionContextPayload, WorkspaceTreePayload } from './editorMonitor';
+import { sendToCopilotChat } from './copilotChatBridge';
 
 let geminiClient: GeminiLiveClient | undefined;
 let audioRecorder: AudioRecorder | undefined;
@@ -304,6 +305,20 @@ function setupEventHandlers() {
             }
         } catch (error) {
             console.error('Error handling disconnected:', error);
+        }
+    });
+
+    // Handle generated prompts from Gemini - send directly to Copilot Chat
+    geminiClient!.on('prompt_ready', async (event: { prompt: string }) => {
+        try {
+            console.log('[Extension] Prompt generated, sending to Copilot Chat');
+            const success = await sendToCopilotChat(event.prompt);
+            if (success) {
+                vscode.window.showInformationMessage('✓ Prompt sent to Copilot Chat');
+            }
+        } catch (error) {
+            console.error('[Extension] Error sending prompt:', error);
+            vscode.window.showErrorMessage(`Failed to send prompt: ${error}`);
         }
     });
 }

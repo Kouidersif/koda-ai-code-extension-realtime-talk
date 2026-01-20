@@ -89,7 +89,20 @@ HOW TO RESPOND:
 - If you see SELECTION CONTEXT, the user wants to discuss that specific code
 - If you don't have context and the user asks about code, say "I don't see any code selected. Could you select the code you want to discuss?"
 - Be specific about line numbers and code elements when explaining
-- Remember: You're pair-programming with the user. Help them understand, debug, and improve their code.""")]),
+- Remember: You're pair-programming with the user. Help them understand, debug, and improve their code.
+
+PROMPT GENERATION FOR COPILOT:
+You can generate prompts for GitHub Copilot Chat using the generate_prompt function.
+Call it when the user needs help with coding tasks:
+- Implementing features ("I need to add...", "I want to create...")
+- Fixing bugs ("it's not working", "there's an error")
+- Improving code ("make this better", "refactor this")
+- Testing, documentation, or code review
+
+When you call generate_prompt, provide a clear task_description of what the user wants.
+The prompt will be sent directly to Copilot Chat.
+
+After generating a prompt, briefly mention you've created one for Copilot.""")]),
             input_audio_transcription=types.AudioTranscriptionConfig(),
             output_audio_transcription=types.AudioTranscriptionConfig(),
             # Disable proactive audio - it can interfere with turn detection
@@ -218,7 +231,15 @@ HOW TO RESPOND:
                                             id=fc.id,
                                             response={"result": result}
                                         ))
-                                        await event_queue.put({"type": "tool_call", "name": func_name, "args": args, "result": result})
+                                        
+                                        # If this is generate_prompt, emit prompt_ready event
+                                        if func_name == 'generate_prompt' and isinstance(result, dict) and result.get('success'):
+                                            prompt_text = result.get('prompt', '')
+                                            logger.info(f"Prompt generated ({len(prompt_text)} chars), emitting prompt_ready")
+                                            await event_queue.put({"type": "prompt_ready", "prompt": prompt_text})
+                                        else:
+                                            # Generic tool call event
+                                            await event_queue.put({"type": "tool_call", "name": func_name, "args": args, "result": result})
                                 
                                 await session.send_tool_response(function_responses=function_responses)
 

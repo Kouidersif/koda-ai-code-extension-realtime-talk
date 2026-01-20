@@ -210,7 +210,10 @@ export class EditorMonitor {
         const config = this.getConfig();
         const editor = vscode.window.activeTextEditor;
         
+        console.log('[EditorMonitor] buildSelectionContextPayload called - editor:', !!editor, 'isEmpty:', editor?.selection.isEmpty);
+        
         if (!editor || editor.selection.isEmpty) {
+            console.log('[EditorMonitor] No selection to build - editor exists:', !!editor, 'selection empty:', editor?.selection.isEmpty);
             return null;
         }
 
@@ -291,7 +294,9 @@ export class EditorMonitor {
         this.lastSentSelectionHash = payload.hash;
         this.selectionSendCount++;
         
-        console.log(`[EditorMonitor] Sent selection context (hash=${payload.hash.substring(0,8)}, count=${this.selectionSendCount})`);
+        const selectionLength = payload.data.selection.text.length;
+        const fileName = payload.data.fileName;
+        console.log(`[EditorMonitor] ✓ SENT selection context: file=${fileName}, chars=${selectionLength}, lines=${payload.data.selection.start.line+1}-${payload.data.selection.end.line+1}, hash=${payload.hash.substring(0,8)}, count=${this.selectionSendCount}`);
     }
 
     /**

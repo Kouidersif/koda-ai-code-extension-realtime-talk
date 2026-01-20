@@ -3,8 +3,6 @@ import base64
 import json
 import logging
 import os
-import io
-import wave
 import hashlib
 
 from dotenv import load_dotenv
@@ -14,6 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from gemini_live import GeminiLive
 from openai import AsyncOpenAI
+from prompt_tools import get_prompt_tools, get_prompt_tool_mapping, set_current_context
 
 # Load environment variables
 load_dotenv()
@@ -72,9 +71,16 @@ def format_editor_context_for_gemini(context: dict) -> str:
                 sel_text = selection.get("text", "")
                 if sel_text:
                     parts.append(f"\n--- SELECTED CODE ---\n{sel_text}\n--- END SELECTION ---")
+                    logger.debug(f"📄 Formatted selection context: {len(sel_text)} chars from {file_name}")
+                else:
+                    logger.warning("⚠️  Selection context has NO text!")
+            else:
+                logger.warning("⚠️  Selection context missing selection data!")
             
             parts.append("[END SELECTION CONTEXT]")
-            return "\n".join(parts)
+            formatted = "\n".join(parts)
+            logger.debug(f"📝 Formatted context message: {len(formatted)} chars")
+            return formatted
         
         # NEW: Handle workspace tree context
         if context_type == "context" and subtype == "tree":
@@ -138,6 +144,15 @@ async def root():
     return FileResponse("frontend/index.html")
 
 
+@app.get("/debug/context-status")
+async def context_status():
+    """Debug endpoint to check context injection status"""
+    return {
+        "message": "This endpoint would show real-time context state if we had a global state manager",
+        "note": "Context state is per-websocket connection - check server logs for detailed debugging"
+    }
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for Gemini Live."""
@@ -148,7 +163,6 @@ async def websocket_endpoint(websocket: WebSocket):
     audio_input_queue = asyncio.Queue(maxsize=100)  # Limit queue size to detect backpressure
     video_input_queue = asyncio.Queue(maxsize=10)
     text_input_queue = asyncio.Queue(maxsize=10)
-    audio_buffer = []  # Buffer to accumulate audio chunks for current turn
     openai_processing = False  # Flag to prevent concurrent OpenAI calls
     current_turn_audio = []  # Audio for the current conversation turn
     
@@ -175,121 +189,10 @@ async def websocket_endpoint(websocket: WebSocket):
         pass
 
     gemini_client = GeminiLive(
-        input_sample_rate=16000 
+        input_sample_rate=16000,
+        tools=get_prompt_tools(),
+        tool_mapping=get_prompt_tool_mapping()
     )
-
-    # async def process_audio_with_openai(audio_data_copy, user_text_from_gemini=None, gemini_response=None):
-    #     """Process accumulated audio with OpenAI Whisper for transcription/translation."""
-    #     nonlocal openai_processing
-        
-    #     if not openai_client:
-    #         return
-        
-    #     try:
-    #         # Gemini already validated this is real speech by responding!
-    #         # Just calculate energy for logging purposes
-    #         import numpy as np
-    #         audio_array = np.frombuffer(audio_data_copy, dtype=np.int16)
-    #         audio_energy = np.sqrt(np.mean(audio_array.astype(np.float32)**2))
-            
-    #         # Create WAV file in memory
-    #         wav_io = io.BytesIO()
-    #         with wave.open(wav_io, 'wb') as wav_file:
-    #             wav_file.setnchannels(1)  # Mono
-    #             wav_file.setsampwidth(2)  # 16-bit
-    #             wav_file.setframerate(16000)  # 16kHz
-    #             wav_file.writeframes(audio_data_copy)
-            
-    #         wav_io.seek(0)
-    #         wav_io.name = "audio.wav"
-            
-    #         # Use Whisper API for transcription
-    #         transcription = await openai_client.audio.transcriptions.create(
-    #             model="gpt-4o-transcribe",
-    #             file=wav_io,
-    #             # response_format="verbose_json"
-    #         )
-            
-    #         no_speech_prob = getattr(transcription, 'no_speech_prob', 0)
-    #         detected_lang = transcription.language if hasattr(transcription, 'language') else 'unknown'
-    #         transcription_text = transcription.text if transcription.text else ""
-            
-    #         # Only skip if transcription is completely empty (Whisper failed)
-    #         if not transcription_text or len(transcription_text.strip()) < 2:
-    #             logger.warning(f"Whisper returned empty transcription despite Gemini validation")
-    #             return
-            
-    #         # Log comparison with Gemini's transcription
-    #         if user_text_from_gemini:
-    #             logger.info(f"Gemini heard: '{user_text_from_gemini}'")
-    #         logger.info(f"Whisper transcribed: '{transcription_text}' (energy: {audio_energy:.2f}, no_speech_prob: {no_speech_prob:.2f})")
-            
-    #         # If not English or Arabic, translate to Arabic using GPT
-    #         translation_text = transcription_text
-    #         if detected_lang not in ['en', 'ar', 'english', 'arabic'] and transcription_text:
-    #             try:
-    #                 # Use Chat Completions to translate to Arabic
-    #                 chat_response = await openai_client.chat.completions.create(
-    #                     model="gpt-4o-mini",
-    #                     messages=[
-    #                         {
-    #                             "role": "system",
-    #                             "content": "You are a translator. Translate the following text to Arabic. Return ONLY the Arabic translation, nothing else."
-    #                         },
-    #                         {
-    #                             "role": "user",
-    #                             "content": transcription_text
-    #                         }
-    #                     ],
-    #                     temperature=0.3
-    #                 )
-    #                 translation_text = chat_response.choices[0].message.content.strip()
-    #             except Exception as e:
-    #                 logger.warning(f"Translation to Arabic failed: {e}")
-    #                 # If translation fails, use transcription
-    #                 translation_text = transcription_text
-    #         elif detected_lang in ['en', 'english']:
-    #             # If English, also translate to Arabic
-    #             try:
-    #                 chat_response = await openai_client.chat.completions.create(
-    #                     model="gpt-4o-mini",
-    #                     messages=[
-    #                         {
-    #                             "role": "system",
-    #                             "content": "You are a translator. Translate the following English text to Arabic. Return ONLY the Arabic translation, nothing else."
-    #                         },
-    #                         {
-    #                             "role": "user",
-    #                             "content": transcription_text
-    #                         }
-    #                     ],
-    #                     temperature=0.3
-    #                 )
-    #                 translation_text = chat_response.choices[0].message.content.strip()
-    #             except Exception as e:
-    #                 logger.warning(f"Translation to Arabic failed: {e}")
-    #                 translation_text = transcription_text
-            
-    #         result = {
-    #             "transcription": transcription_text,
-    #             "translation": translation_text,
-    #             "target_lang": detected_lang,
-    #             "gemini_response": gemini_response  # Include Gemini's response
-    #         }
-            
-    #         # Send to frontend
-    #         await websocket.send_json({
-    #             "type": "openai_transcription",
-    #             "data": result
-    #         })
-            
-    #         logger.info(f"OpenAI transcription: {result}")
-            
-    #     except Exception as e:
-    #         logger.error(f"Error processing audio with OpenAI: {e}")
-    #     finally:
-    #         openai_processing = False
-    
     async def receive_from_client():
         nonlocal openai_processing, current_turn_audio, pending_context, pending_context_hash
         nonlocal context_received_count
@@ -330,19 +233,30 @@ async def websocket_endpoint(websocket: WebSocket):
                                 context_received_count += 1
                                 
                                 data = payload.get("data", {})
-                                selection_text = data.get("selection", {}).get("text", "")[:500]
+                                selection = data.get("selection", {})
+                                selection_text = selection.get("text", "")
+                                selection_preview = selection_text[:100].replace('\n', ' ')
                                 hash_content = json.dumps({
                                     "type": "selection",
                                     "fileName": data.get("fileName"),
-                                    "selectionText": selection_text,
+                                    "selectionText": selection_text[:500],
                                 }, sort_keys=True)
                                 new_hash = hashlib.md5(hash_content.encode()).hexdigest()[:16]
+                                
+                                logger.info(f"📥 RECEIVED selection context: file={data.get('fileName', 'unknown')}, "
+                                          f"chars={len(selection_text)}, "
+                                          f"lines={selection.get('start', {}).get('line', 0)+1}-{selection.get('end', {}).get('line', 0)+1}, "
+                                          f"preview='{selection_preview}...', "
+                                          f"hash={new_hash}, received_count={context_received_count}")
                                 
                                 if new_hash != pending_context_hash:
                                     pending_context = payload
                                     pending_context_hash = new_hash
-                                    logger.info(f"Selection context updated: file={data.get('fileName', 'unknown')}, "
-                                              f"chars={len(data.get('selection', {}).get('text', ''))}, hash={new_hash}")
+                                    # Update context in prompt tools
+                                    set_current_context(selection=payload)
+                                    logger.info(f"✓ Selection context UPDATED and PENDING injection (hash={new_hash})")
+                                else:
+                                    logger.debug(f"Selection context unchanged (hash={new_hash}), keeping current pending")
                                 continue
                             
                             # NEW: Handle workspace tree context
@@ -356,6 +270,8 @@ async def websocket_endpoint(websocket: WebSocket):
                                 if new_hash != pending_context_hash:
                                     pending_context = payload
                                     pending_context_hash = new_hash
+                                    # Update context in prompt tools
+                                    set_current_context(tree=payload)
                                     logger.info(f"Workspace tree context updated: roots={len(data.get('roots', []))}, hash={new_hash}")
                                 continue
                             
@@ -416,13 +332,22 @@ async def websocket_endpoint(websocket: WebSocket):
             """Inject context only if: pending exists, hash differs from last injected, and not already injected this speech"""
             nonlocal last_injected_context_hash, context_injected_this_speech, context_injected_count
             
+            logger.debug(f"🔍 inject_context_if_needed called - pending={bool(pending_context)}, "
+                        f"injected_this_speech={context_injected_this_speech}, "
+                        f"pending_hash={pending_context_hash}, last_injected={last_injected_context_hash}")
+            
             if not pending_context:
+                logger.warning("❌ NO pending context to inject!")
                 return
             if context_injected_this_speech:
+                logger.debug("⏭️  Already injected context this speech turn, skipping")
                 return
             if pending_context_hash == last_injected_context_hash:
-                logger.debug(f"Context unchanged (hash={pending_context_hash}), skipping injection")
+                logger.debug(f"⏭️  Context unchanged (hash={pending_context_hash}), skipping injection")
                 return
+            
+            # Get context type/subtype for logging
+            ctx_type = pending_context.get('subtype', pending_context.get('type'))
             
             context_text = format_editor_context_for_gemini(pending_context)
             if context_text:
@@ -431,9 +356,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     last_injected_context_hash = pending_context_hash
                     context_injected_this_speech = True
                     context_injected_count += 1
-                    logger.info(f"Injected editor context (hash={pending_context_hash}, total_injections={context_injected_count})")
+                    logger.info(f"💉 INJECTED {ctx_type} context to Gemini (hash={pending_context_hash}, "
+                              f"total_injections={context_injected_count}, text_len={len(context_text)} chars)")
                 except Exception as e:
-                    logger.error(f"Error injecting context: {e}")
+                    logger.error(f"❌ Error injecting context: {e}")
         
         try:
             logger.info("Starting Gemini session...")
@@ -452,10 +378,16 @@ async def websocket_endpoint(websocket: WebSocket):
                         user_text = event.get("text", "")
                         current_user_text = user_text
                         
+                        logger.info(f"🗣️  User said: {user_text}")
+                        
                         # Only inject context once at the START of user speech
                         if not user_speech_detected:
                             user_speech_detected = True
-                            logger.info(f"User speech started: '{user_text[:50]}...'")
+                            logger.info(f"▶️  User speech STARTED: '{user_text[:80]}...'")
+                            logger.info(f"📋 Context state: pending={bool(pending_context)}, "
+                                      f"pending_hash={pending_context_hash}, "
+                                      f"last_injected={last_injected_context_hash}, "
+                                      f"injected_this_turn={context_injected_this_speech}")
                             # Inject context now - before Gemini processes the full utterance
                             await inject_context_if_needed()
                     
@@ -473,7 +405,14 @@ async def websocket_endpoint(websocket: WebSocket):
                         })
                     
                     elif event_type == "turn_complete":
-                        logger.info(f"Gemini event: turn_complete")
+                        logger.info("Gemini event: turn_complete")
+                        
+                        # Debug summary for this turn
+                        logger.info(f"📊 TURN SUMMARY: user_speech={bool(current_user_text)}, "
+                                  f"context_injected={context_injected_this_speech}, "
+                                  f"pending_context={bool(pending_context)}, "
+                                  f"total_injections={context_injected_count}")
+                        
                         # Reset for next user turn - DO NOT reset last_injected_context_hash!
                         user_speech_detected = False
                         context_injected_this_speech = False
@@ -482,7 +421,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         current_gemini_text = None
                             
                     elif event_type == "interrupted":
-                        logger.debug(f"Gemini event: interrupted")
+                        logger.debug("Gemini event: interrupted")
                         # Don't reset context state on interruption - just clear audio
                         current_turn_audio.clear()
                     
@@ -506,7 +445,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     "type": "system_error",
                     "message": "Gemini connection lost"
                 })
-            except:
+            except Exception:
                 pass
 
     try:

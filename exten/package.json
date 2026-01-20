@@ -47,6 +47,36 @@
       {
         "command": "ai-narrator.toggleContext",
         "title": "Gemini Live: Toggle Context Sharing"
+      },
+      {
+        "command": "ai-narrator.explainWithCopilot",
+        "title": "Copilot: Explain Selection",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "ai-narrator.reviewWithCopilot",
+        "title": "Copilot: Review Current File",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "ai-narrator.sendLastPromptToCopilot",
+        "title": "Copilot: Send Last Drafted Prompt",
+        "icon": "$(send)"
+      },
+      {
+        "command": "ai-narrator.sendContextToCopilot",
+        "title": "Copilot: Send Selection to Copilot Chat",
+        "icon": "$(rocket)"
+      },
+      {
+        "command": "ai-narrator.setAutonomyLevel",
+        "title": "AI Narrator: Set Prompt Autonomy Level",
+        "icon": "$(settings-gear)"
+      },
+      {
+        "command": "ai-narrator.setConfidenceThreshold",
+        "title": "AI Narrator: Set Confidence Threshold",
+        "icon": "$(dashboard)"
       }
     ],
     "configuration": {
@@ -61,6 +91,24 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically start narrator when VS Code opens"
+        },
+        "aiNarrator.autonomyLevel": {
+          "type": "string",
+          "enum": ["full", "semi", "manual"],
+          "default": "semi",
+          "enumDescriptions": [
+            "Full Auto: AI generates and sends prompts automatically when confident",
+            "Semi-Auto: AI generates prompts automatically but asks before sending",
+            "Manual: AI only generates prompts when explicitly requested"
+          ],
+          "description": "How autonomous should the AI be in generating prompts?"
+        },
+        "aiNarrator.confidenceThreshold": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Minimum confidence (0-1) required to auto-send prompts in Full Auto mode"
         },
         "aiNarrator.notifyOnChanges": {
           "type": "boolean",
@@ -131,6 +179,16 @@
           "type": "number",
           "default": 8000,
           "description": "(Legacy) Maximum characters in context payload"
+        },
+        "aiNarrator.copilot.showNotification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notification when a RISEN prompt is drafted"
+        },
+        "aiNarrator.copilot.autoOpenChat": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically open Copilot Chat when a prompt is drafted (without notification)"
         }
       }
     },
@@ -156,6 +214,23 @@
         "key": "ctrl+shift+s",
         "mac": "cmd+shift+s",
         "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "ai-narrator.explainWithCopilot",
+        "key": "ctrl+alt+e",
+        "mac": "cmd+alt+e",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "ai-narrator.sendContextToCopilot",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c",
+        "when": "editorTextFocus && editorHasSelection"
+      },
+      {
+        "command": "ai-narrator.sendLastPromptToCopilot",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p"
       }
     ]
   },
