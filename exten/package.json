@@ -1,7 +1,7 @@
 {
-  "name": "ai-voice-narrator",
-  "displayName": "AI Voice Narrator",
-  "description": "A voice AI companion that explains code changes and keeps you in flow",
+  "name": "koda-ai",
+  "displayName": "Koda AI",
+  "description": "An intelligent AI coding companion with voice interaction, real-time code analysis, and seamless GitHub Copilot integration. Features Gemini Live for voice conversations, automatic RISEN prompt generation, context-aware assistance, and configurable autonomy levels for enhanced productivity.",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.85.0"
@@ -80,7 +80,7 @@
       }
     ],
     "configuration": {
-      "title": "AI Voice Narrator",
+      "title": "Koda AI",
       "properties": {
         "aiNarrator.backendUrl": {
           "type": "string",
