@@ -28,6 +28,7 @@ def generate_prompt(
     Returns:
         {"success": True, "prompt": "Full prompt text ready for Copilot"}
     """
+    print("generate_prompt called")
     logger.info(f"Generating prompt: {task_description[:50]}...")
 
     lines = [task_description]
@@ -129,53 +130,40 @@ def get_prompt_tools() -> List[types.Tool]:
 
     generate_prompt_declaration = types.FunctionDeclaration(
         name="generate_prompt",
-        description="""Generate a GitHub Copilot Chat prompt that follows the RISEN framework.
+        description="""Generate (or refine) a GitHub Copilot Chat prompt that follows the RISEN framework.
 
-Use this tool when the user needs coding help, e.g.:
-- Implementing something new ("add error handling", "create a function", "add a feature")
-- Debugging ("this is broken", "getting an error", unexpected behavior)
-- Improving code (refactor, optimize, readability, architecture)
-- Writing tests, docs, code review, or explaining code
+IMPORTANT: The input parameter task_description is the actual RISEN prompt content (i.e., it should already contain the 5 RISEN sections). This tool should:
+- Validate the RISEN structure and rewrite it into a clean, complete, high-quality RISEN prompt if needed.
+- Fill gaps by adding non-speculative guidance (e.g., require codebase analysis first, define phases, testing scope, security checks).
+- Never assume tech stack/project details; instruct the coding agent to infer from the codebase unless truly blocking.
+- Keep questions minimal (max 3–5) and only when necessary.
 
 OUTPUT REQUIREMENTS (RISEN):
-Write the prompt in 5 labeled sections, in this exact order:
+Return the final prompt in exactly 5 labeled sections, in this exact order:
 
-1) ROLE:
-   - Specify what Copilot should act as (e.g., "Senior software engineer", "Security-focused reviewer", "Test engineer").
-   - Choose the role that best matches the user’s request.
+1) ROLE
+2) INSTRUCTIONS
+3) STEPS
+4) END GOAL / EXPECTATIONS
+5) NARROWING (QUESTIONS / ASSUMPTIONS)
 
-2) INSTRUCTIONS:
-   - State precisely what to produce (implementation, bug fix, refactor plan, tests, docs, etc.).
-   - Include constraints: language/framework, style, performance, security, backward compatibility, and any project conventions mentioned.
-   - If code changes are requested, ask for diffs/patch-style output or explicit file-by-file edits when appropriate.
-
-3) STEPS:
-   - Provide a short step-by-step approach Copilot should follow (analyze, propose options, implement, validate, etc.).
-   - Include verification steps: how to run/build/test, edge cases, and checks.
-
-4) END GOAL:
-   - Define “done” in measurable terms (expected behavior, acceptance criteria, pass tests, no lint errors, etc.).
-
-5) NARROWING (QUESTIONS / ASSUMPTIONS):
-   - If critical info is missing, list the minimum necessary questions (max 3–5).
-   - If you must proceed without answers, state explicit assumptions (clearly labeled).
-   - Keep this section brief and only include what’s needed to unblock the task.
-
-CONTENT TO INCLUDE:
-- Incorporate the provided task_description as the core request.
-- Add relevant context (file name, repo structure, environment) if provided in context.
-- If code_snippet is provided, include it under a clearly labeled "Relevant code" block.
-- Keep the final prompt concise, actionable, and tailored to the user’s exact goal.
+CONTENT RULES:
+- If context is provided, incorporate it.
+- If code_snippet is provided, include it under a "Relevant code" block.
+- Avoid vague instructions; explicitly define analysis, planning, implementation, and testing/verification phases.
+- Include edge cases and security considerations when relevant.
+- Prefer patch/diff or file-by-file edits when code changes are requested.
 
 DO NOT:
-- Do not include tool/function metadata, internal reasoning, or extra commentary.
-- Do not invent libraries, files, or requirements not stated (unless listed as assumptions in Narrowing).""",
+- Do not include tool/function metadata, internal reasoning, or extra commentary outside the RISEN sections.
+- Do not invent libraries, files, or requirements not provided (unless explicitly labeled as assumptions).
+- Do not include any tool calls unless explicitly requested by the user.""",
         parameters=types.Schema(
             type=types.Type.OBJECT,
             properties={
                 "task_description": types.Schema(
                     type=types.Type.STRING,
-                    description="Clear description of what the user wants. Be specific and actionable. This is the main prompt text.",
+                    description="Full RISEN prompt draft provided by the user (not a summary). It should contain the 5 sections—ROLE, INSTRUCTIONS, STEPS, END GOAL / EXPECTATIONS, and NARROWING (QUESTIONS / ASSUMPTIONS). This tool will normalize/improve it to be clear, thorough, and actionable for a coding agent, adding missing non-speculative details (analysis-first, phased approach, testing/edge cases/security, success criteria) while avoiding any assumptions about tech stack or project specifics.",
                 ),
                 "context": types.Schema(
                     type=types.Type.STRING,

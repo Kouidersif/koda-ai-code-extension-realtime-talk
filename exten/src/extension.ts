@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { GeminiLiveClient } from './geminiLiveClient';
 import { AudioRecorder } from './audioRecorder';
 import { EditorMonitor, EditorContextPayload, SelectionContextPayload, WorkspaceTreePayload } from './editorMonitor';
-import { sendToCopilotChat } from './copilotChatBridge';
+import { openCopilotChatWithPrompt } from './copilotChatBridge';
 
 let geminiClient: GeminiLiveClient | undefined;
 let audioRecorder: AudioRecorder | undefined;
@@ -321,17 +321,28 @@ function setupEventHandlers() {
         }
     });
 
-    // Handle generated prompts from Gemini - send directly to Copilot Chat
-    geminiClient!.on('prompt_ready', async (event: { prompt: string }) => {
+    // Handle generated prompts from Gemini - open in Copilot Chat for user review
+    // Future: The backend will include autoSend parameter to control submission
+    geminiClient!.on('prompt_ready', async (event: { prompt: string; autoSend?: boolean }) => {
         try {
-            console.log('[Extension] Prompt generated, sending to Copilot Chat');
-            const success = await sendToCopilotChat(event.prompt);
+            console.log('[Extension] Prompt generated, opening in Copilot Chat');
+            console.log('[Extension] Prompt:', event.prompt);
+            console.log('[Extension] Auto-send:', event.autoSend ?? false);
+            
+            const success = await openCopilotChatWithPrompt({ 
+                prompt: event.prompt,
+                autoSend: event.autoSend ?? false  // Default: user must submit
+            });
+            
             if (success) {
-                vscode.window.showInformationMessage('✓ Prompt sent to Copilot Chat');
+                const message = event.autoSend 
+                    ? '✓ Prompt submitted to Copilot Chat'
+                    : '✓ Prompt ready in Copilot Chat - review and press Enter to send';
+                console.log('[Extension]', message);
             }
         } catch (error) {
-            console.error('[Extension] Error sending prompt:', error);
-            vscode.window.showErrorMessage(`Failed to send prompt: ${error}`);
+            console.error('[Extension] Error handling prompt:', error);
+            vscode.window.showErrorMessage(`Failed to open Copilot Chat: ${error}`);
         }
     });
 }
