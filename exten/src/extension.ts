@@ -8,25 +8,18 @@ let geminiClient: GeminiLiveClient | undefined;
 let audioRecorder: AudioRecorder | undefined;
 let editorMonitor: EditorMonitor | undefined;
 let statusBarItem: vscode.StatusBarItem;
-let contextStatusBarItem: vscode.StatusBarItem;
 let isActive = false;
-let contextSharingEnabled = true;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('AI Voice Narrator extension is now active');
 
     // Create status bar item 
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.text = "$(mic-off) AI Narrator";
+    statusBarItem.text = "$(sparkle-filled)";
+    statusBarItem.tooltip = "Zexo AI (Click to start)";
     statusBarItem.command = 'ai-narrator.toggle';
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
-
-    // Create context sharing status bar item
-    contextStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
-    updateContextStatusBar();
-    contextStatusBarItem.command = 'ai-narrator.toggleContext';
-    context.subscriptions.push(contextStatusBarItem);
 
     // Initialize components
     geminiClient = new GeminiLiveClient();
@@ -99,14 +92,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    const toggleContextCommand = vscode.commands.registerCommand('ai-narrator.toggleContext', () => {
-        contextSharingEnabled = !contextSharingEnabled;
-        updateContextStatusBar();
-        vscode.window.showInformationMessage(
-            contextSharingEnabled ? 'Context sharing enabled' : 'Context sharing disabled'
-        );
-    });
-
     const toggleAutoSelectCommand = vscode.commands.registerCommand('ai-narrator.toggleAutoSelect', () => {
         const config = vscode.workspace.getConfiguration('aiNarrator.context');
         const currentValue = config.get<boolean>('sendOnSelectionChange', true);
@@ -122,22 +107,11 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         toggleCommand, startCommand, stopCommand, muteCommand, 
         statusCommand, sendContextCommand, sendSelectionCommand, sendTreeCommand, 
-        toggleContextCommand, toggleAutoSelectCommand
+        toggleAutoSelectCommand
     );
 
     // Set up event handlers
     setupEventHandlers();
-}
-
-function updateContextStatusBar() {
-    if (contextSharingEnabled) {
-        contextStatusBarItem.text = "$(eye) Context: On";
-        contextStatusBarItem.tooltip = "Click to disable context sharing with AI";
-    } else {
-        contextStatusBarItem.text = "$(eye-closed) Context: Off";
-        contextStatusBarItem.tooltip = "Click to enable context sharing with AI";
-    }
-    contextStatusBarItem.show();
 }
 
 async function startNarration() {
@@ -165,21 +139,15 @@ async function startNarration() {
                 geminiClient!.sendContext(context);
             },
             (editorContext: EditorContextPayload) => {
-                // Legacy callback - only used if selection-only mode sends via this
-                if (contextSharingEnabled) {
-                    geminiClient!.sendEditorContext(editorContext);
-                }
+                // Legacy callback - send editor context when available
+                geminiClient!.sendEditorContext(editorContext);
             },
             {
                 onSelectionContext: (selectionContext: SelectionContextPayload) => {
-                    if (contextSharingEnabled) {
-                        geminiClient!.sendSelectionContext(selectionContext);
-                    }
+                    geminiClient!.sendSelectionContext(selectionContext);
                 },
                 onTreeContext: (treeContext: WorkspaceTreePayload) => {
-                    if (contextSharingEnabled) {
-                        geminiClient!.sendTreeContext(treeContext);
-                    }
+                    geminiClient!.sendTreeContext(treeContext);
                 }
             }
         );
@@ -187,7 +155,8 @@ async function startNarration() {
         // Note: Workspace tree is sent automatically by EditorMonitor.start() if configured
 
         isActive = true;
-        statusBarItem.text = "$(mic) AI Narrator Active";
+        statusBarItem.text = "$(sparkle-filled)~";
+        statusBarItem.tooltip = "Zexo AI is listening";
         statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
 
         vscode.window.showInformationMessage('AI Narrator started - listening to your workflow');
@@ -211,8 +180,10 @@ async function stopNarration() {
         await geminiClient!.disconnect();
 
         isActive = false;
-        statusBarItem.text = "$(mic-off) AI Narrator";
+        statusBarItem.text = "$(sparkle-filled)";
+        statusBarItem.tooltip = "Zexo AI (Click to start)";
         statusBarItem.backgroundColor = undefined;
+        statusBarItem.show();
 
         vscode.window.showInformationMessage('AI Narrator stopped');
     } catch (error) {
@@ -226,10 +197,12 @@ function toggleMute() {
     const isMuted = audioRecorder!.isMuted();
 
     if (isMuted) {
-        statusBarItem.text = "$(mute) AI Narrator (Muted)";
+        statusBarItem.text = "$(sparkle-filled) $(mute)";
+        statusBarItem.tooltip = "Zexo AI (Muted)";
         vscode.window.showInformationMessage('AI Narrator muted');
     } else {
-        statusBarItem.text = "$(mic) AI Narrator Active";
+        statusBarItem.text = "$(sparkle-filled)~";
+        statusBarItem.tooltip = "Zexo AI is listening";
         vscode.window.showInformationMessage('AI Narrator unmuted');
     }
 }

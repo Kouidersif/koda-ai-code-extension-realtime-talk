@@ -1,8 +1,9 @@
 {
-  "name": "koda-ai",
-  "displayName": "Koda AI",
-  "description": "An intelligent AI coding companion with voice interaction, real-time code analysis, and seamless GitHub Copilot integration. Features Gemini Live for voice conversations, automatic RISEN prompt generation, context-aware assistance, and configurable autonomy levels for enhanced productivity.",
+  "name": "Zexo-ai",
+  "displayName": "Zexo AI",
+  "description": "An intelligent AI coding companion with voice interaction, real-time code analysis, and seamless GitHub Copilot integration. Features Zexo AI for voice conversations, automatic RISEN prompt generation, context-aware assistance, and configurable autonomy levels for enhanced productivity.",
   "version": "0.1.0",
+  "icon": "src/assets/koda-ai-no-bg.png",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -18,39 +19,35 @@
     "commands": [
       {
         "command": "ai-narrator.toggle",
-        "title": "Toggle AI Voice Narrator"
+        "title": "Toggle Zexo AI"
       },
       {
         "command": "ai-narrator.start",
-        "title": "Start AI Voice Narrator"
+        "title": "Start Zexo AI"
       },
       {
         "command": "ai-narrator.stop",
-        "title": "Stop AI Voice Narrator"
+        "title": "Stop Zexo AI"
       },
       {
         "command": "ai-narrator.mute",
-        "title": "Mute/Unmute AI Voice Narrator"
+        "title": "Mute/Unmute Zexo AI"
       },
       {
         "command": "ai-narrator.sendContext",
-        "title": "Gemini Live: Send Current File Context"
+        "title": "Zexo AI: Send Current File Context"
       },
       {
         "command": "ai-narrator.sendSelection",
-        "title": "Gemini Live: Send Selection to AI"
+        "title": "Zexo AI: Send Selection to AI"
       },
       {
         "command": "ai-narrator.sendWorkspaceTree",
-        "title": "Gemini Live: Send Workspace Tree to AI"
-      },
-      {
-        "command": "ai-narrator.toggleContext",
-        "title": "Gemini Live: Toggle Context Sharing"
+        "title": "Zexo AI: Send Workspace Tree to AI"
       },
       {
         "command": "ai-narrator.toggleAutoSelect",
-        "title": "Gemini Live: Toggle Auto-Send Selection"
+        "title": "Zexo AI: Toggle Auto-Send Selection"
       },
       {
         "command": "ai-narrator.explainWithCopilot",
@@ -84,12 +81,12 @@
       }
     ],
     "configuration": {
-      "title": "Koda AI",
+      "title": "Zexo AI",
       "properties": {
         "aiNarrator.backendUrl": {
           "type": "string",
           "default": "ws://localhost:8001/ws",
-          "description": "WebSocket URL for the Gemini Live backend"
+          "description": "WebSocket URL for the Zexo AI backend"
         },
         "aiNarrator.autoStart": {
           "type": "boolean",

@@ -1,232 +1,117 @@
-# AI Voice Narrator - VS Code Extension
+# Zexo AI - Your AI Code Companion
 
-A voice AI companion that explains code changes in real-time using Gemini Live, keeping you in flow without reading walls of text.
+Transform your coding experience with voice-powered AI assistance. Zexo AI provides intelligent, context-aware help through natural voice conversations while you code.
 
-## Features
+## ✨ Features
 
-- **Live Voice Narration**: Hear what changed in your code as you work
-- **Smart Context Awareness**: Monitors file changes, saves, and git diffs
-- **Two-Way Communication**: Voice input and output via Gemini Live
-- **Minimal Friction**: Toggle on/off with keyboard shortcuts
-- **Real-time Audio**: Low-latency audio streaming via WebSocket
+- **🎤 Voice Interaction**: Talk to your code like you're pair programming with an expert
+- **🧠 Smart Context**: Automatically understands what you're working on
+- **💬 Copilot Integration**: Enhanced GitHub Copilot commands for quick explanations and reviews
+- **🎯 Privacy-Focused**: Only shares context when active, with automatic secret redaction
+- **⚡ Real-time**: Instant voice responses with low-latency audio streaming
+- **🔒 Secure**: No data stored locally, full control over what's shared
 
-## Setup
+## 🚀 Getting Started
 
-### 1. Project Structure
+### Installation
 
-Create this folder structure:
+1. **Install** the extension from VS Code Marketplace
+2. **Start coding**: Click the ✨ sparkle icon in the status bar!
 
-```
-ai-voice-narrator/
-├── src/
-│   ├── extension.ts
-│   ├── geminiLiveClient.ts
-│   ├── audioRecorder.ts
-│   └── editorMonitor.ts
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
-### 2. Install Dependencies
-
-```bash
-npm install
-```
-
-### 3. Configure Backend URL
-
-Open VS Code settings (Cmd/Ctrl + ,) and search for "AI Narrator". Set:
-
-- **Backend URL**: `ws://localhost:8001/ws` (or your backend URL)
-
-### 4. Run the Extension
-
-1. Open the project in VS Code
-2. Press `F5` to launch Extension Development Host
-3. In the new window, press `Ctrl+Shift+V` (or `Cmd+Shift+V` on Mac) to start
-
-## Usage
-
-### Commands
-
-- **Toggle AI Narrator**: `Ctrl+Shift+V` / `Cmd+Shift+V`
-- **Mute/Unmute**: `Ctrl+Shift+M` / `Cmd+Shift+M`
-- Or use Command Palette (`Ctrl+Shift+P`):
-  - `Start AI Voice Narrator`
-  - `Stop AI Voice Narrator`
-  - `Toggle AI Voice Narrator`
+## 💻 How to Use
 
 ### Status Bar
 
-The status bar (bottom right) shows:
-- `$(mic-off) AI Narrator` - Inactive
-- `$(mic) AI Narrator Active` - Listening and narrating
-- `$(mute) AI Narrator (Muted)` - Muted
+Look for the **✨ sparkle icon** in the bottom-right corner:
+- **✨** = Ready (click to activate)
+- **✨~** = Listening & active
+- **✨ 🔇** = Muted
 
-### How It Works
+Just click the icon to start or stop Zexo AI.
 
-1. **Start the narrator** - it connects to your Gemini Live backend
-2. **Code as normal** - make changes, save files
-3. **Listen** - the AI narrates what changed:
-   - "I detected changes in auth.ts - you added JWT validation"
-   - "Three files modified - login flow updated with error handling"
-4. **Speak** - ask questions or give commands via voice
-5. **Stay in flow** - no context switching
+### Voice Commands
 
-## Configuration
-
-### Settings
-
-- `aiNarrator.backendUrl`: WebSocket URL for Gemini Live backend
-- `aiNarrator.autoStart`: Auto-start when VS Code opens
-- `aiNarrator.notifyOnChanges`: Show notifications for major changes
-- `aiNarrator.debounceDelay`: Delay before sending changes (default: 500ms)
-
-### Context Sharing Settings
-
-Control how much of your code is shared with the AI:
-
-- `aiNarrator.context.enabled`: Enable/disable context sharing (default: true)
-- `aiNarrator.context.selectionOnly`: Only send selected text, not full files (default: true, recommended for privacy)
-- `aiNarrator.context.sendOnSelectionChange`: Automatically send selections without CMD+Shift+S (default: true)
-- `aiNarrator.context.maxSelectionChars`: Max characters to send in selection (default: 8000)
-- `aiNarrator.context.includeWorkspaceTree`: Send workspace directory tree on session start (default: true)
-- `aiNarrator.context.workspaceTreeDepth`: How deep to scan workspace (default: 4)
-- `aiNarrator.context.includeFullFile`: Send entire file content (default: false, privacy consideration)
-- `aiNarrator.context.includeGitDiff`: Include git diff of current file (default: false)
-- `aiNarrator.context.snippetLines`: Lines of code around cursor to include (default: 40)
-- `aiNarrator.context.maxChars`: Maximum characters in context payload (default: 20,000)
-- `aiNarrator.context.debounceMs`: Debounce delay for context updates (default: 500ms)
-
-### Context Commands
-
-- **Send Context Now**: `Gemini Live: Send Current File Context Now` - Manually send current editor context
-- **Send Selection**: `Gemini Live: Send Selection to AI` (`CMD+Shift+S`) - Manually send selected text
-- **Send Workspace Tree**: `Gemini Live: Send Workspace Tree to AI` - Send project structure
-- **Toggle Context**: `Gemini Live: Toggle Context Sharing` - Enable/disable context sharing
-- **Toggle Auto-Send Selection**: `Gemini Live: Toggle Auto-Send Selection` - Enable/disable automatic sending when you select text
-- Status bar shows context sharing state: `$(eye) Context: On` or `$(eye-closed) Context: Off`
-
-### Auto-Send Selection (New!)
-
-By default, the AI automatically receives your selected text without needing to press CMD+Shift+S:
-
-1. **Start the narrator**
-2. **Select any text** in your editor
-3. **AI receives it automatically** (no hotkey needed!)
-
-To disable auto-send and require manual CMD+Shift+S:
-- Use command: `Gemini Live: Toggle Auto-Send Selection`
-- Or in settings: Set `aiNarrator.context.sendOnSelectionChange` to `false`
-
-**Features:**
-- ✅ Automatic with 300ms debounce (prevents spam while selecting)
-- ✅ Hash-based deduplication (doesn't resend unchanged selections)
-- ✅ 8000 character limit (configurable)
-- ✅ Respects privacy settings and context toggle
-
-## What Gets Sent to Gemini
-
-The extension sends:
-- File changes (git diff when available)
-- File saves with context
-- Active editor switches
-- Selected text
-- Language and file metadata
-
-### Editor Context (New!)
-
-When context sharing is enabled, the extension automatically sends:
-- **File info**: Name, language, line count
-- **Cursor position**: Current line and column
-- **Selection**: Any selected text (for "explain this" queries)
-- **Code snippet**: ~40 lines around your cursor (configurable)
-- **Git diff** (optional): Changes in the current file
-
-This allows you to ask questions like:
+Once active, simply speak to ask questions:
 - "What does this function do?"
-- "Explain this code"
 - "Is there a bug here?"
-- "How can I improve this?"
+- "How can I improve this code?"
+- "Explain this to me"
 
-The AI will respond based on the actual code you're looking at!
+## 📋 What Gets Shared
 
-## Privacy & Security
+When Zexo AI is **active**, it automatically shares:
+- Selected code snippets
+- Current file context (~40 lines around cursor)
+- File metadata (name, language, line count)
+- Project structure (on session start)
 
-- Audio is streamed directly to your backend (not stored)
-- Code context is sent only while narrator is active
-- No data is stored or transmitted when inactive
-- **Secret redaction**: Common patterns (API keys, passwords, private keys) are automatically redacted
-- **Size limits**: Context is truncated to prevent large payloads (default 20KB max)
-- **Opt-in for sensitive data**: Full file and git diff require explicit enabling
-- Context sharing can be toggled on/off at any time via status bar or command
+**When stopped**: Nothing is shared. Your code stays private.
 
-## Development
+## 🔒 Privacy & Security
 
-### Building
+- ✅ **On-demand only**: Shares context only when active
+- ✅ **No local storage**: Nothing saved on your machine
+- ✅ **Size limits**: Max 20KB per context payload
+- ✅ **Instant control**: Stop anytime with one click
 
-```bash
-npm run compile
+## 🎯 Use Cases
+
+**Learning**: Understand unfamiliar code
+```
+Select a complex function → Ask "How does this work?"
 ```
 
-### Watching for changes
-
-```bash
-npm run watch
+**Debugging**: Find issues quickly
+```
+Select suspicious code → Ask "Is there a bug here?"
 ```
 
-### Testing
-
-```bash
-npm test
+**Code Review**: Get instant feedback
+```
+Use "Copilot: Review Current File" command
 ```
 
-## Troubleshooting
-
-### No audio playback
-- Check browser permissions for microphone/speakers
-- Ensure backend is running and WebSocket is connected
-- Check VS Code Developer Console for errors
-
-### Backend connection fails
-- Verify backend URL in settings
-- Ensure backend server is running on port 8001
-- Check firewall settings
-
-### Audio quality issues
-- The extension uses 16kHz, 16-bit PCM audio
-- Ensure your microphone supports these settings
-- Check system audio settings
-
-## Architecture
-
+**Refactoring**: Get improvement suggestions
 ```
-VS Code Extension
-├── Extension Host (Node.js)
-│   ├── Editor Monitor → Watches file changes
-│   └── WebSocket Client → Connects to backend
-└── Webview/Browser Context
-    ├── Audio Recorder → Captures microphone
-    └── Audio Player → Plays Gemini responses
-
-Backend (Python/FastAPI)
-└── Gemini Live → AI narration engine
+Select code → Ask "How can I make this better?"
 ```
 
-## Next Steps
+**Accessibility**: Code hands-free
+```
+Use voice commands instead of typing
+```
 
-Potential enhancements:
-- Visual indicators for AI speaking
-- Transcription display panel
-- Context filtering (ignore certain files)
-- Custom prompts/personality
-- Integration with other AI tools
+## 🔧 Troubleshooting
 
-## License
+**Extension won't start**
+→ Ensure the extension is activated via the status bar icon or command palette
 
-MIT
+**No audio**
+→ Verify microphone permissions in System Preferences/Settings
 
-## Support
+**Context not working**
+→ Make sure Zexo AI is active (✨~ icon in status bar)
 
-For issues or questions, please open an issue on GitHub.
+**Connection errors**
+→ Confirm VS Code is online and retry activating the extension
+
+## 💡 Tips
+
+- **Select code first** before asking questions for better context
+- **Keep Zexo AI running** while working on a feature for continuous assistance
+- **Use mute** when you need quiet but want to keep context sharing active
+- **Combine with Copilot** for the best AI-assisted coding experience
+
+## 📄 License
+
+MIT License
+
+## 💬 Support
+
+Need help?
+- **Report issues**: [GitHub Issues](https://github.com/Kouidersif/Zexo-ai-code-extension-realtime-talk/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Kouidersif/Zexo-ai-code-extension-realtime-talk/discussions)
+
+---
+
+**Made with ✨ by the Zexo AI team**
