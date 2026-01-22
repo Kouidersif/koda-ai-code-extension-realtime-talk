@@ -58,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showWarningMessage('No active editor');
             }
         } else {
-            vscode.window.showWarningMessage('AI Narrator must be active to send context');
+            vscode.window.showWarningMessage('Zexo AI must be active to send context');
         }
     });
 
@@ -73,7 +73,7 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showWarningMessage('No text selected. Select text first, or use "Send Current File Context".');
             }
         } else {
-            vscode.window.showWarningMessage('AI Narrator must be active to send selection');
+            vscode.window.showWarningMessage('Zexo AI must be active to send selection');
         }
     });
 
@@ -88,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
                 vscode.window.showWarningMessage('No workspace open');
             }
         } else {
-            vscode.window.showWarningMessage('AI Narrator must be active to send tree');
+            vscode.window.showWarningMessage('Zexo AI must be active to send tree');
         }
     });
 
@@ -159,9 +159,9 @@ async function startNarration() {
         statusBarItem.tooltip = "Zexo AI is listening";
         statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
 
-        vscode.window.showInformationMessage('AI Narrator started - listening to your workflow');
+        vscode.window.showInformationMessage('Zexo AI started - listening to your workflow');
     } catch (error) {
-        vscode.window.showErrorMessage(`Failed to start AI Narrator: ${error}`);
+        vscode.window.showErrorMessage(`Failed to start Zexo AI: ${error}`);
         console.error('Start error:', error);
     }
 }
@@ -185,9 +185,9 @@ async function stopNarration() {
         statusBarItem.backgroundColor = undefined;
         statusBarItem.show();
 
-        vscode.window.showInformationMessage('AI Narrator stopped');
+        vscode.window.showInformationMessage('Zexo AI stopped');
     } catch (error) {
-        vscode.window.showErrorMessage(`Failed to stop AI Narrator: ${error}`);
+        vscode.window.showErrorMessage(`Failed to stop Zexo AI: ${error}`);
         console.error('Stop error:', error);
     }
 }
@@ -199,11 +199,11 @@ function toggleMute() {
     if (isMuted) {
         statusBarItem.text = "$(sparkle-filled) $(mute)";
         statusBarItem.tooltip = "Zexo AI (Muted)";
-        vscode.window.showInformationMessage('AI Narrator muted');
+        vscode.window.showInformationMessage('Zexo AI muted');
     } else {
         statusBarItem.text = "$(sparkle-filled)~";
         statusBarItem.tooltip = "Zexo AI is listening";
-        vscode.window.showInformationMessage('AI Narrator unmuted');
+        vscode.window.showInformationMessage('Zexo AI unmuted');
     }
 }
 
@@ -265,7 +265,7 @@ function setupEventHandlers() {
         try {
             console.error('[Extension] Gemini error:', error);
             if (isActive) {
-                vscode.window.showErrorMessage(`AI Narrator error: ${error}`);
+                vscode.window.showErrorMessage(`Zexo AI error: ${error}`);
             }
         } catch (err) {
             console.error('Error displaying error message:', err);

@@ -1,9 +1,13 @@
 {
-  "name": "Zexo-ai",
+  "name": "zexo-ai",
   "displayName": "Zexo AI",
   "description": "An intelligent AI coding companion with voice interaction, real-time code analysis, and seamless GitHub Copilot integration. Features Zexo AI for voice conversations, automatic RISEN prompt generation, context-aware assistance, and configurable autonomy levels for enhanced productivity.",
   "version": "0.1.0",
   "icon": "src/assets/koda-ai-no-bg.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kouidersif/koda-ai-code-extension-realtime-talk.git"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -71,12 +75,12 @@
       },
       {
         "command": "ai-narrator.setAutonomyLevel",
-        "title": "AI Narrator: Set Prompt Autonomy Level",
+        "title": "Zexo AI: Set Prompt Autonomy Level",
         "icon": "$(settings-gear)"
       },
       {
         "command": "ai-narrator.setConfidenceThreshold",
-        "title": "AI Narrator: Set Confidence Threshold",
+        "title": "Zexo AI: Set Confidence Threshold",
         "icon": "$(dashboard)"
       }
     ],
